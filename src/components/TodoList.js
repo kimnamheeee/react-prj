@@ -28,7 +28,7 @@ const TodoList = () => {
   const [input, setInput] = useState("");
 
   const getTodos = async () => {
-    const q = query(todoCollection);
+    const q = query(todoCollection, orderBy("datetime", "desc"));
 
     const results = await getDocs(q);
     const newTodos = [];
@@ -55,12 +55,23 @@ const TodoList = () => {
     //   completed: 완료 여부,
     // }
     // ...todos => {id: 1, text: "할일1", completed: false}, {id: 2, text: "할일2", completed: false}}, ..
+    const day = new Date().toISOString().replace("T", " ").slice(0, -5);
 
     const docRef = await addDoc(todoCollection, {
       text: input,
       completed: false,
+      datetime: day,
     });
-    setTodos([...todos, { id: Date.now(), text: input, completed: false }]);
+
+    setTodos([
+      {
+        id: docRef.id,
+        text: input,
+        completed: false,
+        datetime: day,
+      },
+      ...todos,
+    ]);
     setInput("");
   };
 
