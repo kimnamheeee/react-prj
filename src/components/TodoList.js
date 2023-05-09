@@ -28,17 +28,34 @@ const TodoList = () => {
   // 상태를 관리하는 useState 훅을 사용하여 할 일 목록과 입력값을 초기화합니다.
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState("");
+  const [userinfo, setUserinfo] = useState(0);
 
   const { data } = useSession();
 
+  const setAdmin = () => {
+    const admin_arr = ["김진중", "김남희", "한승오", "김선정", "김명원"];
+    if (userinfo === 1) {
+      setUserinfo(0);
+    } else {
+      if (admin_arr.includes(data.user.name)) {
+        setUserinfo(1);
+      } else alert("Not an admin user");
+    }
+  };
+
   const getTodos = async () => {
     if (!data?.user?.name) return;
+    let q;
 
-    const q = query(
-      todoCollection,
-      where("userId", "==", data?.user?.id),
-      orderBy("datetime", "asc")
-    );
+    if (userinfo == 1) {
+      q = query(todoCollection, orderBy("datetime", "asc"));
+    } else {
+      q = query(
+        todoCollection,
+        where("userId", "==", data?.user?.id),
+        orderBy("datetime", "asc")
+      );
+    }
 
     const results = await getDocs(q);
     const newTodos = [];
@@ -52,7 +69,7 @@ const TodoList = () => {
 
   useEffect(() => {
     getTodos();
-  }, [data]);
+  }, [data, userinfo]);
 
   // addTodo 함수는 입력값을 이용하여 새로운 할 일을 목록에 추가하는 함수입니다.
   const addTodo = async () => {
@@ -87,30 +104,55 @@ const TodoList = () => {
   };
 
   // toggleTodo 함수는 체크박스를 눌러 할 일의 완료 상태를 변경하는 함수입니다.
-  const toggleTodo = (id) => {
-    const newTodos = todos.map((todo) => {
-      if (todo.id === id) {
-        const todoDoc = doc(todoCollection, id);
-        updateDoc(todoDoc, { completed: !todo.completed });
-        return { ...todo, completed: !todo.completed };
-      } else {
-        return todo;
-      }
+  const toggleTodo = async (id) => {
+    let q = query(todoCollection, where("userId", "==", data?.user?.id));
+
+    const results = await getDocs(q);
+    const userTodoIds = [];
+
+    results.docs.forEach((doc) => {
+      userTodoIds.push(doc.id);
     });
 
-    setTodos(newTodos);
+    if (!userTodoIds.includes(id)) {
+      alert("Can't toggle other's Todo");
+    } else {
+      const newTodos = todos.map((todo) => {
+        if (todo.id === id) {
+          const todoDoc = doc(todoCollection, id);
+          updateDoc(todoDoc, { completed: !todo.completed });
+          return { ...todo, completed: !todo.completed };
+        } else {
+          return todo;
+        }
+      });
+      setTodos(newTodos);
+    }
   };
 
   // deleteTodo 함수는 할 일을 목록에서 삭제하는 함수입니다.
-  const deleteTodo = (id) => {
-    const todoDoc = doc(todoCollection, id);
-    deleteDoc(todoDoc);
+  const deleteTodo = async (id) => {
+    let q = query(todoCollection, where("userId", "==", data?.user?.id));
 
-    setTodos(
-      todos.filter((todo) => {
-        return todo.id !== id;
-      })
-    );
+    const results = await getDocs(q);
+    const userTodoIds = [];
+
+    results.docs.forEach((doc) => {
+      userTodoIds.push(doc.id);
+    });
+
+    if (!userTodoIds.includes(id)) {
+      alert("Can't delete other's todo");
+    } else {
+      const todoDoc = doc(todoCollection, id);
+      deleteDoc(todoDoc);
+
+      setTodos(
+        todos.filter((todo) => {
+          return todo.id !== id;
+        })
+      );
+    }
   };
   // 컴포넌트를 렌더링합니다.
   return (
@@ -118,6 +160,12 @@ const TodoList = () => {
       <h1 className="text-xl mb-4 font-bold underline underline-offset-4 decoration-wavy">
         {data?.user?.name}'s Todo List
       </h1>
+      <button
+        className="w-38 justify-self-end p-1 mb-4 bg-blue-500 text-white border border-blue-500 rounded hover:bg-white hover:text-blue-500"
+        onClick={setAdmin}
+      >
+        {userinfo ? "관리자모드" : "일반모드"}
+      </button>
       {/* 할 일을 입력받는 텍스트 필드입니다. */}
       <input
         type="text"

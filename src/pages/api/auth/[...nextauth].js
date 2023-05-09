@@ -12,7 +12,6 @@ export default NextAuth({
     async session({ session, token, user }) {
       session.user.id = token.sub;
       session.user.name = token.name;
-      // console.log("token", token);
       return session;
     },
   },
