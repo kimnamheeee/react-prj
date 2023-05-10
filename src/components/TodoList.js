@@ -169,7 +169,7 @@ const TodoList = () => {
       <button
         className={`w-38
                       justify-self-center
-                      p-1 mb-4 mr-4
+                      p-1 mb-4 ml-4
                       text-blue-500
                       border border-blue-500 rounded
                     hover:bg-white hover:text-blue-500`}
